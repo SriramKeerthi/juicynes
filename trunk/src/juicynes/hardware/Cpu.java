@@ -59,21 +59,19 @@ public class Cpu
 			break;
 		// zero-page, x
 		case 0x35:
-			operand = getByte();
-			and( memory[operand+xindex]);
+			and( memory[getByte()+xindex]);
 			break;
 		// absolute	
 		case 0x2D:
-			pc++;
-			
+			and( memory[get16bitAddress()] );
 			break;
 		// absolute, x
 		case 0x3D:
-			
+			and( memory[get16bitAddress()+xindex] );
 			break;
 		// absolute, y	
 		case 0x39:
-			
+			and( memory[get16bitAddress()+yindex] );
 			break;
 		// indirect, x
 		case 0x21:
@@ -95,7 +93,7 @@ public class Cpu
 		pc++;
 		int b2 = memory[pc];
 		pc++;
-		return b1 + (b2<<8);
+		return b1 | (b2<<8);
 	}
 	
 	private int getByte()

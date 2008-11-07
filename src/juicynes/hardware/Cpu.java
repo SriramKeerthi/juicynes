@@ -28,6 +28,8 @@ public class Cpu
 		
 		int opcode = 0;
 		int operand = 0;
+		int cycles = 0;
+		int index = 0;
 		
 		switch (opcode)
 		{
@@ -51,35 +53,63 @@ public class Cpu
 		// ------ AND -------- //
 		// immediate
 		case 0x29:
-			and( getByte() );
+			and( nextByte() );
 			break;
 		// zero-page
 		case 0x25:
-			and( memory[getByte()] );
+			and( memory[nextByte()] );
 			break;
 		// zero-page, x
 		case 0x35:
-			and( memory[getByte()+xindex]);
+			and( memory[addBytes(nextByte(), xindex)] );
 			break;
 		// absolute	
 		case 0x2D:
-			and( memory[get16bitAddress()] );
+			and( memory[next2Bytes()] );
 			break;
 		// absolute, x
 		case 0x3D:
-			and( memory[get16bitAddress()+xindex] );
+			and( memory[next2Bytes()+xindex] );
 			break;
 		// absolute, y	
 		case 0x39:
-			and( memory[get16bitAddress()+yindex] );
+			and( memory[next2Bytes()+yindex] );
 			break;
 		// indirect, x
 		case 0x21:
-			
+			index = memory[addBytes(nextByte(),xindex)];
+			and( memory[get2Bytes(index)] );
 			break;
 		// indirect, y	
 		case 0x31:
+			index = memory[addBytes(nextByte(),yindex)];
+			and( memory[get2Bytes(index)] );
+			break;
 			
+		// ASL (Shift Left One Bit)
+		// accumulator
+		case 0x0A:
+			accumulator = asl(accumulator);
+			break;
+		// zero page
+		case 0x06:
+			index = nextByte();
+			memory[index] = asl( memory[index] );
+			break;
+		// zero page, x
+		case 0x16:
+			index = addBytes(nextByte(), xindex);
+			memory[index] = asl( memory[index] );
+			break;
+		// absolute
+		case 0x0E:
+			index = next2Bytes();
+			memory[index] = asl( memory[index] );
+			break;
+		// absolute, x
+		case 0x1E:
+			index = next2Bytes() + xindex;
+			memory[index] = asl( memory[index] );
 			break;
 		default:
 			break;
@@ -87,7 +117,7 @@ public class Cpu
 	}
 	
 	
-	private int get16bitAddress()
+	private int next2Bytes()
 	{
 		int b1 = memory[pc];
 		pc++;
@@ -96,9 +126,19 @@ public class Cpu
 		return b1 | (b2<<8);
 	}
 	
-	private int getByte()
+	private int get2Bytes(int address)
+	{
+		return memory[address] | (memory[address+1]<<8);
+	}
+	
+	private int nextByte()
 	{
 		return memory[pc++];
+	}
+	
+	private int addBytes(int byte1, int byte2)
+	{
+		return (byte1 + byte2) % 256;
 	}
 	
 	private int addXIndex(int byteval)
@@ -124,12 +164,13 @@ public class Cpu
 	}
 	
 	// Shift Left One Bit
-	void asl(int operand)
+	int asl(int arg)
 	{
-		carryFlag = (accumulator & 0x80) != 0;
-		accumulator <<= 1;
-		setZeroFlag(accumulator);
-		setSignFlag(accumulator);
+		carryFlag = (arg & 0x80) != 0;
+		arg = (arg<<1) & 0xFF;
+		setZeroFlag(arg);
+		setSignFlag(arg);
+		return arg;
 	}
 	
 	void asl_memory()

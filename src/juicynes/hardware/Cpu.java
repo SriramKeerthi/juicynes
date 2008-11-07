@@ -116,7 +116,6 @@ public class Cpu
 		}
 	}
 	
-	
 	private int next2Bytes()
 	{
 		int b1 = memory[pc];
@@ -151,9 +150,18 @@ public class Cpu
 		return (byteval+yindex) & 0xFF;
 	}
 	
-	void adc(byte arg)
+	// N Z C I D V
+	// / / / _ _ /
+	void adc(int arg)
 	{
+		int result = accumulator + arg + (carryFlag ? 1 : 0);
 		
+		adjustCarryFlag(result);
+		adjustSignFlag(result);
+		adjustOverFlowFlag(result);
+		adjustZeroFlag(result);
+		
+		setAccumulator(result);
 	}
 	
 	void and(int operand)
@@ -173,19 +181,52 @@ public class Cpu
 		return arg;
 	}
 	
-	void asl_memory()
+	void bcc()
 	{
+		if(!carryFlag)
+			branch(nextByte());
+	}
+	
+	void bcs()
+	{
+		if(carryFlag)
+			branch(nextByte());
+	}
+	
+	
+	
+	private int signedByteValue(int byteval)
+	{
+		boolean isNegative = (byteval&0x00000080) != 0;
+		byteval &=0x0000007F;
+		return isNegative ? -byteval : byteval;
+	}
+	
+	private void branch(int arg)
+	{
+		pc += signedByteValue(arg);
+	}
+	
+	private void adjustZeroFlag(int result)
+	{
+		result &= 0xFF;
+		zeroFlag = (result == 0);
+	}
+
+	private void adjustOverFlowFlag(int result)
+	{
+		overflowFlag = ((result & 0xFFFFFF00) != 0);
+	}
+
+	private void adjustSignFlag(int result)
+	{
+		negativeFlag = (result & 0x80)
+	}
+
+	private void adjustCarryFlag(int result)
+	{
+		// TODO Auto-generated method stub
 		
-	}
-	
-	void setSignFlag(int arg)
-	{
-		negativeFlag = (arg & 0x80) == 0x80;
-	}
-	
-	void setZeroFlag(int arg)
-	{
-		zeroFlag = (arg == 0);
 	}
 	
 	void setAccumulator(int value)

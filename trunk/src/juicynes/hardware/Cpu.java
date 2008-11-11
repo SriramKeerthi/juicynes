@@ -15,7 +15,8 @@ public class Cpu
 	boolean carryFlag;
 	boolean zeroFlag;
 	boolean interruptDisabledFlag;
-	boolean binaryCodedDecimalModeFlag;
+	boolean decimalModeFlag;
+	boolean breakFlag;
 	boolean overflowFlag;
 	boolean negativeFlag;
 	
@@ -238,24 +239,31 @@ public class Cpu
 		break;
 		
 		// (Stack Operations)
-		// --- TSX --- //
 		case 0xBA:
 			tsx();
 		break;
+		case 0x9A:
+			txs();
+		break;
+		case 0x48:
+			pha();
+		break;
+		case 0x08:
+			php();
+		break;
+		case 0x68:
+			pla();
+		break;
+		case 0x28:
+			plp();
+		break;
 		
-		// --- TXS --- //
+		// (Logical Operations)
 		
 		
-		// --- PHA --- //
 		
 		
-		// --- PHP --- //
-		
-		
-		// --- PLA --- //
-		
-		
-		// --- PLP --- //
+		// (Arithmetic Operations)
 		
 		
 		
@@ -347,7 +355,42 @@ public class Cpu
 		xindex = stackPointer;
 	}
 	
+	void txs()
+	{
+		stackPointer = xindex;
+	}
 	
+	void pha()
+	{
+		memory[stackPointer--] = accumulator;
+	}
+	
+	void php()
+	{
+		memory[stackPointer--] = statusFlag();
+	}
+
+	void pla()
+	{
+		accumulator = memory[stackPointer++];
+		adjustZeroFlag(accumulator);
+		adjustSignFlag(accumulator);
+	}
+	
+	// 7   6   5   4   3   2   1   0
+    // S   V       B   D   I   Z   C
+	void plp()
+	{
+		int value = memory[stackPointer++];
+		
+		carryFlag = (value & 0x01) == 0x01;
+		zeroFlag = (value & 0x02) == 0x02;
+		interruptDisabledFlag = (value & 0x04) == 0x04;
+		decimalModeFlag = (value & 0x08) == 0x08;
+		breakFlag = (value & 0x10) == 0x10;
+		overflowFlag = (value & 0x40) == 0x40;
+		negativeFlag = (value & 0x80) == 0x80;
+	}
 	
 	// N Z C I D V
 	// / / / _ _ /
@@ -538,6 +581,27 @@ public class Cpu
 		return memory[pc++];
 	}
 	
+	private int statusFlag()
+	{
+		int status = 0x0;
+		if(carryFlag)
+			status |= 0x01;
+		if(zeroFlag)
+			status |= 0x02;
+		if(interruptDisabledFlag)
+			status |= 0x04;
+		if(decimalModeFlag)
+			status |= 0x08;
+		if(breakFlag)
+			status |= 0x10;
+		if(overflowFlag)
+			status |= 0x40;
+		if(negativeFlag)
+			status |= 0x80;
+		
+		return status;
+	}
+	
 	private int addBytes(int byte1, int byte2)
 	{
 		return (byte1 + byte2) % 256;
@@ -575,10 +639,5 @@ public class Cpu
 	{
 		// TODO Auto-generated method stub
 		
-	}
-	
-	void setAccumulator(int value)
-	{
-		accumulator = value & 0xFF;
 	}
 }

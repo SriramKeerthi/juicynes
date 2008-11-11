@@ -111,9 +111,412 @@ public class Cpu
 			index = next2Bytes() + xindex;
 			memory[index] = asl( memory[index] );
 			break;
+			
+		// --- LDA --- //
+		case 0xA9:
+			lda( memory[immediate()] );
+		break;
+		case 0xA5:
+			lda( memory[zeropage()] );
+		break;
+		case 0xB5:
+			lda( memory[zeropageX()] );
+		break;
+		case 0xAD:
+			lda( memory[absolute()] );
+		break;
+		case 0xBD:
+			lda( memory[absoluteX()] );
+		break;
+		case 0xB9:
+			lda( memory[absoluteY()] );
+		break;
+		case 0xA1:
+			lda( memory[indirectX()] );
+		break;
+		case 0xB1:
+			lda( memory[indirectY()] );
+		break;
+		
+		// --- LDX --- //
+		case 0xA2:
+			ldx( memory[immediate()] );
+		break;
+		case 0xA6:
+			ldx( memory[zeropage()] );
+		break;
+		case 0xB6:
+			ldx( memory[zeropageY()] );
+		break;
+		case 0xAE:
+			ldx( memory[absolute()] );
+		break;
+		case 0xBE:
+			ldx( memory[absoluteY()] );
+		break;
+		
+		// --- LDY --- //
+		case 0xA0:
+			ldx( memory[immediate()] );
+		break;
+		case 0xA4:
+			ldx( memory[zeropage()] );
+		break;
+		case 0xB4:
+			ldx( memory[zeropageX()] );
+		break;
+		case 0xAC:
+			ldx( memory[absolute()] );
+		break;
+		case 0xBC:
+			ldx( memory[absoluteX()] );
+		break;
+		
+		// --- STA --- //
+		case 0x85:
+			sta( zeropage() );
+		break;
+		case 0x95:
+			sta( zeropageX() );
+		break;
+		case 0x8D:
+			sta( absolute() );
+		break;
+		case 0x9D:
+			sta( absoluteX() );
+		break;
+		case 0x99:
+			sta( absoluteY() );
+		break;
+		case 0x81:
+			sta( indirectX() );
+		break;
+		case 0x91:
+			sta( indirectY() );
+		break;
+		
+		// --- STX --- //
+		case 0x86:
+			stx( zeropage() );
+		break;
+		case 0x96:
+			stx( zeropageY() );
+		break;
+		case 0x8E:
+			stx( absolute() );
+		break;
+		
+		// --- STY --- //
+		case 0x84:
+			sty( zeropage() );
+		break;
+		case 0x94:
+			sty( zeropageX() );
+		break;
+		case 0x8C:
+			sty( absolute() );
+		break;
+		
+		// --- TAX --- //
+		case 0xAA:
+			tax();
+		break;
+		
+		// --- TAY --- //
+		case 0xA8:
+			tay();
+		break;
+		
+		// --- TXA --- //
+		case 0x8A:
+			txa();
+		break;
+		
+		// --- TYA --- //
+		case 0x98:
+			tya();
+		break;
+		
+		// (Stack Operations)
+		// --- TSX --- //
+		case 0xBA:
+			tsx();
+		break;
+		
+		// --- TXS --- //
+		
+		
+		// --- PHA --- //
+		
+		
+		// --- PHP --- //
+		
+		
+		// --- PLA --- //
+		
+		
+		// --- PLP --- //
+		
+		
+		
+		
+		// Catch bad opcodes
 		default:
-			break;
+			System.out.println("Illegal opcode: " + opcode);
+		break;
 		}
+	}
+	
+	
+	/// --- Load/Store Operations --- ///
+	
+	void lda(int value)
+	{
+		adjustZeroFlag(value);
+		adjustSignFlag(value);
+		accumulator = value;
+	}
+	
+	void ldx(int value)
+	{
+		adjustZeroFlag(value);
+		adjustSignFlag(value);
+		xindex = value;
+	}
+	
+	void ldy(int value)
+	{
+		adjustZeroFlag(value);
+		adjustSignFlag(value);
+		yindex = value;
+	}
+	
+	void sta(int address)
+	{
+		memory[address] = accumulator;
+	}
+	
+	void stx(int address)
+	{
+		memory[address] = xindex;
+	}
+	
+	void sty(int address)
+	{
+		memory[address] = yindex;
+	}
+	
+	
+	/// --- Register Transfers --- ///
+	
+	void tax()
+	{
+		adjustZeroFlag(accumulator);
+		adjustSignFlag(accumulator);
+		xindex = accumulator;
+	}
+	
+	void tay()
+	{
+		adjustZeroFlag(accumulator);
+		adjustSignFlag(accumulator);
+		yindex = accumulator;
+	}
+	
+	void txa()
+	{
+		adjustZeroFlag(xindex);
+		adjustSignFlag(xindex);
+		accumulator = xindex;
+	}
+	
+	void tya()
+	{
+		adjustZeroFlag(yindex);
+		adjustSignFlag(yindex);
+		accumulator = yindex;
+	}
+	
+	
+	// (Stack Operations)
+	
+	void tsx()
+	{
+		adjustZeroFlag(stackPointer);
+		adjustSignFlag(stackPointer);
+		xindex = stackPointer;
+	}
+	
+	
+	
+	// N Z C I D V
+	// / / / _ _ /
+	void adc(int arg)
+	{
+		int result = accumulator + arg + (carryFlag ? 1 : 0);
+		
+		adjustCarryFlag(result);
+		adjustSignFlag(result);
+		adjustOverFlowFlag(result);
+		adjustZeroFlag(result);
+		
+		setAccumulator(result);
+	}
+	
+	void and(int operand)
+	{
+		//setAccumulator(accumulator & operand);
+		//setZeroFlag(accumulator);
+		//setSignFlag(accumulator);
+	}
+	
+	// Shift Left One Bit
+	int asl(int arg)
+	{
+		//carryFlag = (arg & 0x80) != 0;
+		//arg = (arg<<1) & 0xFF;
+		//setZeroFlag(arg);
+		//setSignFlag(arg);
+		return arg;
+	}
+	
+	void bcc()
+	{
+		if(!carryFlag)
+			branch(nextByte());
+	}
+	
+	void bcs()
+	{
+		if(carryFlag)
+			branch(nextByte());
+	}
+	
+	void beq()
+	{
+		if(zeroFlag)
+			branch(nextByte());
+	}
+	
+	void bit()
+	{
+		
+	}
+	
+	void bmi()
+	{
+		if(negativeFlag)
+			branch(nextByte());
+	}
+	
+	void bne()
+	{
+		if(!zeroFlag)
+			branch(nextByte());
+	}
+	
+	void bpl()
+	{
+		if(!negativeFlag)
+			branch(nextByte());
+	}
+	
+	void brk()
+	{
+		
+	}
+	
+	void bvc()
+	{
+		
+	}
+	
+	void bvs()
+	{
+		
+	}
+	
+	void clc()
+	{
+		
+	}
+	
+	void cld()
+	{
+		
+	}
+	
+	void cli()
+	{
+		
+	}
+	
+	void clv()
+	{
+		
+	}
+	
+	void cmp()
+	{
+		
+	}
+	
+	void cpx()
+	{
+		
+	}
+	
+	void cpy()
+	{
+		
+	}
+	
+	
+	private int immediate()
+	{
+		return pc++;
+	}
+	
+	private int zeropage()
+	{
+		return memory[pc++];
+	}
+	
+	private int zeropageX()
+	{
+		return memory[ addBytes(pc++, xindex) ];
+	}
+	
+	private int zeropageY()
+	{
+		return memory[ addBytes(pc++, yindex) ];
+	}
+	
+	private int absolute()
+	{
+		return next2Bytes();
+	}
+	
+	private int absoluteX()
+	{
+		return next2Bytes()+xindex;
+	}
+	
+	private int absoluteY()
+	{
+		return next2Bytes()+yindex;
+	}
+	
+	private int indirectX()
+	{
+		int index = memory[addBytes(nextByte(),xindex)];
+		return get2Bytes(index);
+	}
+	
+	private int indirectY()
+	{
+		int index = memory[nextByte()];
+		return get2Bytes(index)+yindex;
 	}
 	
 	private int next2Bytes()
@@ -140,61 +543,6 @@ public class Cpu
 		return (byte1 + byte2) % 256;
 	}
 	
-	private int addXIndex(int byteval)
-	{
-		return (byteval+xindex) & 0xFF;
-	}
-	
-	private int addYIndex(int byteval)
-	{
-		return (byteval+yindex) & 0xFF;
-	}
-	
-	// N Z C I D V
-	// / / / _ _ /
-	void adc(int arg)
-	{
-		int result = accumulator + arg + (carryFlag ? 1 : 0);
-		
-		adjustCarryFlag(result);
-		adjustSignFlag(result);
-		adjustOverFlowFlag(result);
-		adjustZeroFlag(result);
-		
-		setAccumulator(result);
-	}
-	
-	void and(int operand)
-	{
-		setAccumulator(accumulator & operand);
-		setZeroFlag(accumulator);
-		setSignFlag(accumulator);
-	}
-	
-	// Shift Left One Bit
-	int asl(int arg)
-	{
-		carryFlag = (arg & 0x80) != 0;
-		arg = (arg<<1) & 0xFF;
-		setZeroFlag(arg);
-		setSignFlag(arg);
-		return arg;
-	}
-	
-	void bcc()
-	{
-		if(!carryFlag)
-			branch(nextByte());
-	}
-	
-	void bcs()
-	{
-		if(carryFlag)
-			branch(nextByte());
-	}
-	
-	
-	
 	private int signedByteValue(int byteval)
 	{
 		boolean isNegative = (byteval&0x00000080) != 0;
@@ -220,7 +568,7 @@ public class Cpu
 
 	private void adjustSignFlag(int result)
 	{
-		negativeFlag = (result & 0x80)
+		negativeFlag = (result & 0x80) == 0x80;
 	}
 
 	private void adjustCarryFlag(int result)

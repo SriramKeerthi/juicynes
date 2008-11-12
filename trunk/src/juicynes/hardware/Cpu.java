@@ -28,91 +28,11 @@ public class Cpu
 	{
 		
 		int opcode = 0;
-		int operand = 0;
-		int cycles = 0;
-		int index = 0;
 		
 		switch (opcode)
 		{
-		// ADC (Add memory to accumulator with carry)
-		case 0x69:
-			pc++;
-			break;
-			
-		case 0x65:
-			
-			break;
 		
-		case 0x75:
-			
-			break;
-		
-		case 0x6D:
-			
-			break;
-		
-		// ------ AND -------- //
-		// immediate
-		case 0x29:
-			and( nextByte() );
-			break;
-		// zero-page
-		case 0x25:
-			and( memory[nextByte()] );
-			break;
-		// zero-page, x
-		case 0x35:
-			and( memory[addBytes(nextByte(), xindex)] );
-			break;
-		// absolute	
-		case 0x2D:
-			and( memory[next2Bytes()] );
-			break;
-		// absolute, x
-		case 0x3D:
-			and( memory[next2Bytes()+xindex] );
-			break;
-		// absolute, y	
-		case 0x39:
-			and( memory[next2Bytes()+yindex] );
-			break;
-		// indirect, x
-		case 0x21:
-			index = memory[addBytes(nextByte(),xindex)];
-			and( memory[get2Bytes(index)] );
-			break;
-		// indirect, y	
-		case 0x31:
-			index = memory[addBytes(nextByte(),yindex)];
-			and( memory[get2Bytes(index)] );
-			break;
-			
-		// ASL (Shift Left One Bit)
-		// accumulator
-		case 0x0A:
-			accumulator = asl(accumulator);
-			break;
-		// zero page
-		case 0x06:
-			index = nextByte();
-			memory[index] = asl( memory[index] );
-			break;
-		// zero page, x
-		case 0x16:
-			index = addBytes(nextByte(), xindex);
-			memory[index] = asl( memory[index] );
-			break;
-		// absolute
-		case 0x0E:
-			index = next2Bytes();
-			memory[index] = asl( memory[index] );
-			break;
-		// absolute, x
-		case 0x1E:
-			index = next2Bytes() + xindex;
-			memory[index] = asl( memory[index] );
-			break;
-			
+		// (Load/Store Operations)
 		// --- LDA --- //
 		case 0xA9:
 			lda( memory[immediate()] );
@@ -218,22 +138,16 @@ public class Cpu
 			sty( absolute() );
 		break;
 		
-		// --- TAX --- //
 		case 0xAA:
 			tax();
 		break;
-		
-		// --- TAY --- //
 		case 0xA8:
 			tay();
 		break;
-		
-		// --- TXA --- //
 		case 0x8A:
 			txa();
 		break;
 		
-		// --- TYA --- //
 		case 0x98:
 			tya();
 		break;
@@ -259,13 +173,216 @@ public class Cpu
 		break;
 		
 		// (Logical Operations)
+		// and
+		case 0x29:
+			and( immediate() );
+		break;
+		case 0x25:
+			and( zeropage() );
+		break;
+		case 0x35:
+			and( zeropageX() );
+		break;
+		case 0x2D:
+			and( absolute() );
+		break;
+		case 0x3D:
+			and( absoluteX() );
+		break;
+		case 0x39:
+			and( absoluteY() );
+		break;
+		case 0x21:
+			and( indirectX() );
+		break;
+		case 0x31:
+			and( indirectY() );
+		break;
+	
+		// eor
+		case 0x49:
+			eor( immediate() );
+		break;
+		case 0x45:
+			eor( zeropage() );
+		break;
+		case 0x55:
+			eor( zeropageX() );
+		break;
+		case 0x4D:
+			eor( absolute() );
+		break;
+		case 0x5D:
+			eor( absoluteX() );
+		break;
+		case 0x41:
+			eor( indirectX() );
+		break;
+		case 0x51:
+			eor( indirectY() );
+		break;
 		
+		// ora
+		case 0x09:
+			ora( immediate() );
+		break;
+		case 0x05:
+			ora( zeropage() );
+		break;
+		case 0x15:
+			ora( zeropageX() );
+		break;
+		case 0x0D:
+			ora( absolute() );
+		break;
+		case 0x1D:
+			ora( absoluteX() );
+		break;
+		case 0x19:
+			ora( absoluteY() );
+		break;
+		case 0x01:
+			ora( indirectX() );
+		break;
+		case 0x11:
+			ora( indirectY() );
+		break;
 		
-		
+		// bit
+		case 0x24:
+			bit( zeropage() );
+		break;
+		case 0x2C:
+			bit( absolute() );
+		break;
 		
 		// (Arithmetic Operations)
+		// adc
+		case 0x69:
+			adc( immediate() );
+		break;
+		case 0x65:
+			adc( zeropage() );
+		break;
+		case 0x75:
+			adc( zeropageX() );
+		break;
+		case 0x6D:
+			adc( absolute() );
+		break;
+		case 0x7D:
+			adc( absoluteX() );
+		break;
+		case 0x79:
+			adc( absoluteY() );
+		break;
+		case 0x61:
+			adc( indirectX() );
+		break;
+		case 0x71:
+			adc( indirectY() );
+		break;
 		
+		// sbc
+		case 0xE9:
+			sbc( immediate() );
+		break;
+		case 0xE5:
+			sbc( zeropage() );
+		break;
+		case 0xF5:
+			sbc( zeropageX() );
+		break;
+		case 0xED:
+			sbc( absolute() );
+		break;
+		case 0xFD:
+			sbc( absoluteX() );
+		break;
+		case 0xF9:
+			sbc( absoluteY() );
+		break;
+		case 0xE1:
+			sbc( indirectX() );
+		break;
+		case 0xF1:
+			sbc( indirectY() );
+		break;
 		
+		// cmp
+		case 0xC9:
+			cmp( immediate() );
+		break;
+		case 0xC5:
+			cmp( zeropage() );
+		break;
+		case 0xD5:
+			cmp( zeropageX() );
+		break;
+		case 0xCD:
+			cmp( absolute() );
+		break;
+		case 0xDD:
+			cmp( absoluteX() );
+		break;
+		case 0xD9:
+			cmp( absoluteY() );
+		break;
+		case 0xC1:
+			cmp( indirectX() );
+		break;
+		case 0xD1:
+			cmp( indirectY() );
+		break;
+		
+		// cpx
+		case 0xE0:
+			cpx( immediate() );
+		break;
+		case 0xE4:
+			cpx( zeropage() );
+		break;
+		case 0xEC:
+			cpx( absolute() );
+		break;
+		
+		// cpy
+		case 0xC0:
+			cpy( immediate() );
+		break;
+		case 0xC4:
+			cpy( zeropage() );
+		break;
+		case 0xCC:
+			cpy( absolute() );
+		break;
+		
+		// (Increment/Decrement Operations)
+		// inc
+		case 0xE6: inc(zeropage());  break;
+		case 0xF6: inc(zeropageX()); break;
+		case 0xEE: inc(absolute());  break;
+		case 0xFE: inc(absoluteX()); break;
+		
+		// inx
+		case 0xE8: inx(); break;
+		
+		// iny
+		case 0xC8: iny(); break;
+		
+		// dec
+		case 0xC6: dec(zeropage());  break;
+		case 0xD6: dec(zeropageX()); break;
+		case 0xCE: dec(absolute());  break;
+		case 0xDE: dec(absoluteX()); break;
+		
+		// dex
+		case 0xCA: dex(); break;
+		
+		// dey
+		case 0x88: dey(); break;
+		
+		// (Shift Operations)
 		
 		
 		// Catch bad opcodes
@@ -377,8 +494,6 @@ public class Cpu
 		adjustSignFlag(accumulator);
 	}
 	
-	// 7   6   5   4   3   2   1   0
-    // S   V       B   D   I   Z   C
 	void plp()
 	{
 		int value = memory[stackPointer++];
@@ -392,25 +507,137 @@ public class Cpu
 		negativeFlag = (value & 0x80) == 0x80;
 	}
 	
-	// N Z C I D V
-	// / / / _ _ /
-	void adc(int arg)
+	// (Logical Operations)
+	void and(int address)
 	{
-		int result = accumulator + arg + (carryFlag ? 1 : 0);
-		
-		adjustCarryFlag(result);
-		adjustSignFlag(result);
-		adjustOverFlowFlag(result);
-		adjustZeroFlag(result);
-		
-		setAccumulator(result);
+		accumulator &= memory[address];
+		adjustZeroFlag(accumulator);
+		adjustSignFlag(accumulator);
 	}
 	
-	void and(int operand)
+	void eor(int address)
 	{
-		//setAccumulator(accumulator & operand);
-		//setZeroFlag(accumulator);
-		//setSignFlag(accumulator);
+		accumulator ^= memory[address];
+		adjustZeroFlag(accumulator);
+		adjustSignFlag(accumulator);
+	}
+	
+	void ora(int address)
+	{
+		accumulator |= memory[address];
+		adjustZeroFlag(accumulator);
+		adjustSignFlag(accumulator);
+	}
+	
+	void bit(int address)
+	{
+		int value = memory[address];
+		adjustZeroFlag(accumulator & value);
+		adjustSignFlag(value);
+		overflowFlag = ((value & 0x20) == 0x20);
+	}
+	
+	// (Arithmetic Operations)
+	
+	void adc(int address)
+	{
+		int value = memory[address];
+		int result = accumulator + value + (carryFlag ? 1 : 0);
+		
+		carryFlag = result > 0xFF;
+		overflowFlag = (((accumulator^value) & 0x80) == 0) && 
+		               (((accumulator^result) & 0x80) != 0);
+		result &= 0xFF;
+		adjustZeroFlag(result);
+		adjustSignFlag(result);
+		
+		accumulator = result;
+	}
+	
+	void sbc(int address)
+	{
+		int value = memory[address];
+		int result = accumulator - value - (carryFlag ? 0 : 1);
+		
+		carryFlag = result < 0;
+		overflowFlag = (((accumulator^result) & 0x80) != 0) && 
+		               (((accumulator^value) & 0x80) != 0);
+		
+		result &= 0xFF;
+		adjustZeroFlag(result);
+		adjustSignFlag(result);
+		
+		accumulator = result;
+	}
+	
+	void cmp(int address)
+	{
+		int value = memory[address];
+		carryFlag = accumulator >= value;
+		zeroFlag = accumulator == value;
+		adjustSignFlag(accumulator - value);
+	}
+	
+	void cpx(int address)
+	{
+		int value = memory[address];
+		carryFlag = xindex >= value;
+		zeroFlag = xindex == value;
+		adjustSignFlag(xindex - value);
+	}
+	
+	void cpy(int address)
+	{
+		int value = memory[address];
+		carryFlag = yindex >= value;
+		zeroFlag = yindex == value;
+		adjustSignFlag(yindex - value);
+	}
+	
+	// (Increment/Decrement Operations)
+	
+	void inc(int address)
+	{
+		int result = (memory[address] + 1) & 0xFF;
+		adjustZeroFlag(result);
+		adjustSignFlag(result);
+		memory[address] = result;
+	}
+	
+	void inx()
+	{
+		xindex = (xindex + 1) & 0xFF;
+		adjustZeroFlag(xindex);
+		adjustSignFlag(xindex);
+	}
+	
+	void iny()
+	{
+		xindex = (yindex + 1) & 0xFF;
+		adjustZeroFlag(yindex);
+		adjustSignFlag(yindex);
+	}
+	
+	void dec(int address)
+	{
+		int result = (memory[address] - 1) & 0xFF;
+		adjustZeroFlag(result);
+		adjustSignFlag(result);
+		memory[address] = result;
+	}
+	
+	void dex()
+	{
+		xindex = (xindex - 1) & 0xFF;
+		adjustZeroFlag(xindex);
+		adjustSignFlag(xindex);
+	}
+	
+	void dey()
+	{
+		xindex = (yindex - 1) & 0xFF;
+		adjustZeroFlag(yindex);
+		adjustSignFlag(yindex);
 	}
 	
 	// Shift Left One Bit
@@ -439,11 +666,6 @@ public class Cpu
 	{
 		if(zeroFlag)
 			branch(nextByte());
-	}
-	
-	void bit()
-	{
-		
 	}
 	
 	void bmi()
@@ -564,10 +786,8 @@ public class Cpu
 	
 	private int next2Bytes()
 	{
-		int b1 = memory[pc];
-		pc++;
-		int b2 = memory[pc];
-		pc++;
+		int b1 = memory[pc++];
+		int b2 = memory[pc++];
 		return b1 | (b2<<8);
 	}
 	

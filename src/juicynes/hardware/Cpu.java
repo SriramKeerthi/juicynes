@@ -640,14 +640,60 @@ public class Cpu
 		adjustSignFlag(yindex);
 	}
 	
-	// Shift Left One Bit
-	int asl(int arg)
+	// (Shift Operations)
+	void asl(int address)
 	{
-		//carryFlag = (arg & 0x80) != 0;
-		//arg = (arg<<1) & 0xFF;
-		//setZeroFlag(arg);
-		//setSignFlag(arg);
-		return arg;
+		int val = memory[address];
+		
+		carryFlag = (val & 0x80) == 0x80;
+		val <<= 1;
+		adjustZeroFlag(val);
+		adjustSignFlag(val);
+		
+		memory[address] = val;
+	}
+	
+	void asl_accumulator()
+	{
+		carryFlag = (accumulator & 0x80) == 0x80;
+		accumulator <<= 1;
+		adjustZeroFlag(accumulator);
+		adjustSignFlag(accumulator);
+	}
+	
+	void lsr(int address)
+	{
+		int val = memory[address];
+		
+		carryFlag = (val & 0x01) == 0x01;
+		val >>= 1;
+		adjustZeroFlag(val);
+		adjustSignFlag(val);
+		
+		memory[address] = val;
+	}
+	
+	void lsr_accumulator()
+	{
+		carryFlag = (accumulator & 0x01) == 0x01;
+		accumulator >>= 1;
+		adjustZeroFlag(accumulator);
+		adjustSignFlag(accumulator);
+	}
+	
+	void rol(int address)
+	{
+		
+	}
+	
+	void rol_accumulator()
+	{
+		
+	}
+	
+	void ror(int address)
+	{
+		
 	}
 	
 	void bcc()

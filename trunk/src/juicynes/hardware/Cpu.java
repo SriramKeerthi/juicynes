@@ -31,6 +31,7 @@ public class Cpu
 		
 		switch (opcode)
 		{
+		//TODO: Change load operations to have address as param instead of value.
 		
 		// (Load/Store Operations)
 		// --- LDA --- //
@@ -383,7 +384,68 @@ public class Cpu
 		case 0x88: dey(); break;
 		
 		// (Shift Operations)
+		// asl
+		case 0x0A: asl_accumulator(); break;
+		case 0x06: asl(zeropage());	  break;
+		case 0x16: asl(zeropageX());  break;
+		case 0x0E: asl(absolute());   break;
+		case 0x1E: asl(absoluteX());  break;
 		
+		// lsr
+		case 0x4A: lsr_accumulator(); break;
+		case 0x46: lsr(zeropage());   break;
+		case 0x56: lsr(zeropageX());  break;
+		case 0x4E: lsr(absolute());   break;
+		case 0x5E: lsr(absoluteX());  break;
+		
+		// rol
+		case 0x2A: rol_accumulator(); break;
+		case 0x26: rol(zeropage());   break;
+		case 0x36: rol(zeropageX());  break;
+		case 0x2E: rol(absolute());   break;
+		case 0x3E: rol(absoluteX());  break;
+		
+		// ror
+		case 0x6A: ror_accumulator(); break;
+		case 0x66: ror(zeropage());   break;
+		case 0x76: ror(zeropageX());  break;
+		case 0x6E: ror(absolute());   break;
+		case 0x7E: ror(absoluteX());  break;
+		
+		// (Jumps and Calls Operations)
+		// jmp
+		case 0x4C: jmp(absolute()); break;
+		case 0x6C: jmp(indirect()); break;
+		
+		// jsr
+		case 0x20: jsr(absolute()); break;
+		
+		// rts
+		case 0x60: rts(); break;
+		
+		// (Branch Operations)
+		case 0x90: bcc(); break;
+		case 0xB0: bcs(); break;
+		case 0xF0: beq(); break;
+		case 0x30: bmi(); break;
+		case 0xD0: bne(); break;
+		case 0x10: bpl(); break;
+		case 0x50: bvc(); break;
+		case 0x70: bvs(); break;
+		
+		// (Status Flag Operations)
+		case 0x18: clc(); break;
+		case 0xD8: cld(); break;
+		case 0x58: cli(); break;
+		case 0xB8: clv(); break;
+		case 0x38: sec(); break;
+		case 0xF8: sed(); break;
+		case 0x78: sei(); break;
+		
+		// (System Function Operations)
+		case 0x00: brk(); break;
+		case 0xEA: nop(); break;
+		case 0x40: rti(); break;
 		
 		// Catch bad opcodes
 		default:
@@ -479,24 +541,24 @@ public class Cpu
 	
 	void pha()
 	{
-		memory[stackPointer--] = accumulator;
+		push(accumulator);
 	}
 	
 	void php()
 	{
-		memory[stackPointer--] = statusFlag();
+		push(statusFlag());
 	}
 
 	void pla()
 	{
-		accumulator = memory[stackPointer++];
+		accumulator = pull();
 		adjustZeroFlag(accumulator);
 		adjustSignFlag(accumulator);
 	}
 	
 	void plp()
 	{
-		int value = memory[stackPointer++];
+		int value = pull();
 		
 		carryFlag = (value & 0x01) == 0x01;
 		zeroFlag = (value & 0x02) == 0x02;
@@ -683,106 +745,188 @@ public class Cpu
 	
 	void rol(int address)
 	{
+		int val = memory[address];
 		
+		carryFlag = (val & 0x80) == 0x80;
+		val <<= 1;
+		if(carryFlag) 
+			val += 0x01;
+		adjustZeroFlag(val);
+		adjustSignFlag(val);
+		
+		memory[address] = val;
 	}
 	
 	void rol_accumulator()
 	{
+		carryFlag = (accumulator & 0x80) == 0x80;
+		accumulator <<= 1;
+		if(carryFlag) 
+			accumulator += 0x01;
+		adjustZeroFlag(accumulator);
+		adjustSignFlag(accumulator);
 		
 	}
 	
 	void ror(int address)
 	{
+		int val = memory[address];
 		
+		carryFlag = (val & 0x01) == 0x01;
+		val >>= 1;
+		if(carryFlag) 
+			val += 0x80;
+		adjustZeroFlag(val);
+		adjustSignFlag(val);
+		
+		memory[address] = val;
 	}
 	
+	void ror_accumulator()
+	{
+		carryFlag = (accumulator & 0x01) == 0x01;
+		accumulator >>= 1;
+		if(carryFlag) 
+			accumulator += 0x80;
+		adjustZeroFlag(accumulator);
+		adjustSignFlag(accumulator);
+	}
+	
+	// (Jump and Call Operations)
+	void jmp(int address)
+	{
+		pc = address;
+	}
+	
+	void jsr(int address)
+	{
+		push((pc>>8) & 0xFF);
+		push(pc & 0xFF);
+		pc = address-1;
+	}
+	
+	void rts()
+	{
+		pc = pull();
+		pc += (pull()<<8);
+		pc += 1;
+		//TODO: Might need to wrap pc.
+	}
+	
+	// (Branch Operations)
 	void bcc()
 	{
+		int val = nextByte();
 		if(!carryFlag)
-			branch(nextByte());
+			branch(val);
 	}
 	
 	void bcs()
 	{
+		int val = nextByte();
 		if(carryFlag)
-			branch(nextByte());
+			branch(val);
 	}
 	
 	void beq()
 	{
+		int val = nextByte();
 		if(zeroFlag)
-			branch(nextByte());
+			branch(val);
 	}
 	
 	void bmi()
 	{
+		int val = nextByte();
 		if(negativeFlag)
-			branch(nextByte());
+			branch(val);
 	}
 	
 	void bne()
 	{
+		int val = nextByte();
 		if(!zeroFlag)
-			branch(nextByte());
+			branch(val);
 	}
 	
 	void bpl()
 	{
+		int val = nextByte();
 		if(!negativeFlag)
-			branch(nextByte());
+			branch(val);
 	}
 	
+	
+	void bvc()
+	{
+		int val = nextByte();
+		if(!overflowFlag)
+			branch(val);
+	}
+	
+	void bvs()
+	{
+		int val = nextByte();
+		if(overflowFlag)
+			branch(val);
+	}
+	
+	// (Status Flag Change Operations)
+	void clc()
+	{
+		carryFlag = false;
+	}
+	
+	void cld()
+	{
+		decimalModeFlag = false;
+	}
+	
+	void cli()
+	{
+		interruptDisabledFlag = false;
+	}
+	
+	void clv()
+	{
+		overflowFlag = false;
+	}
+	
+	void sec()
+	{
+		carryFlag = true;
+	}
+	
+	void sed()
+	{
+		decimalModeFlag = true;
+	}
+	
+	void sei()
+	{
+		interruptDisabledFlag = true;
+	}
+	
+	// (System Functions)
 	void brk()
 	{
 		
 	}
 	
-	void bvc()
+	void nop()
 	{
 		
 	}
 	
-	void bvs()
-	{
-		
-	}
-	
-	void clc()
-	{
-		
-	}
-	
-	void cld()
-	{
-		
-	}
-	
-	void cli()
-	{
-		
-	}
-	
-	void clv()
-	{
-		
-	}
-	
-	void cmp()
-	{
-		
-	}
-	
-	void cpx()
-	{
-		
-	}
-	
-	void cpy()
+	void rti()
 	{
 		
 	}
 	
 	
+	// Address Modes
+	// All functions return the address to data
+	// rather than the actual data.
 	private int immediate()
 	{
 		return pc++;
@@ -816,6 +960,11 @@ public class Cpu
 	private int absoluteY()
 	{
 		return next2Bytes()+yindex;
+	}
+	
+	private int indirect()
+	{
+		return get2Bytes( next2Bytes() );
 	}
 	
 	private int indirectX()
@@ -891,19 +1040,26 @@ public class Cpu
 		zeroFlag = (result == 0);
 	}
 
-	private void adjustOverFlowFlag(int result)
-	{
-		overflowFlag = ((result & 0xFFFFFF00) != 0);
-	}
-
 	private void adjustSignFlag(int result)
 	{
 		negativeFlag = (result & 0x80) == 0x80;
 	}
-
-	private void adjustCarryFlag(int result)
+	
+	// Stack Helper Functions
+	void push(int val)
 	{
-		// TODO Auto-generated method stub
+		memory[stackPointer] = val;
 		
+		stackPointer--;
+		stackPointer = 0x0100 | (stackPointer&0xFF);
 	}
+	
+	int pull()
+	{
+		stackPointer++;
+		stackPointer = 0x0100 | (stackPointer&0xFF);
+		
+		return memory[stackPointer];
+	}
+	
 }

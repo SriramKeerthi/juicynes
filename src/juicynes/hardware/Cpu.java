@@ -2,7 +2,6 @@ package juicynes.hardware;
 
 public class Cpu 
 {
-
 	// registers
 	int accumulator;
 	int xindex;
@@ -20,17 +19,23 @@ public class Cpu
 	boolean overflowFlag;
 	boolean negativeFlag;
 	
-	int[] memory;
+	CpuMemoryMap memory;
 	
 	int cycles;
 	int opcode;
 	boolean pageCrossed;
 	
+	
+	public Cpu(CpuMemoryMap memory)
+	{
+		this.memory = memory;
+	}
+	
 	public void run()
 	{
 		while(true)
 		{
-			opcode = memory[pc++];
+			opcode = memory.read(pc++);
 			switch (opcode)
 			{
 			// (Load/Store Operations)
@@ -238,7 +243,7 @@ public class Cpu
 	
 	void lda(int address)
 	{
-		int val = memory[address];
+		int val = memory.read(address);
 		adjustZeroFlag(val);
 		adjustSignFlag(val);
 		accumulator = val;
@@ -246,7 +251,7 @@ public class Cpu
 	
 	void ldx(int address)
 	{
-		int val = memory[address];
+		int val = memory.read(address);
 		adjustZeroFlag(val);
 		adjustSignFlag(val);
 		xindex = val;
@@ -254,7 +259,7 @@ public class Cpu
 	
 	void ldy(int address)
 	{
-		int val = memory[address];
+		int val = memory.read(address);
 		adjustZeroFlag(val);
 		adjustSignFlag(val);
 		yindex = val;
@@ -262,17 +267,17 @@ public class Cpu
 	
 	void sta(int address)
 	{
-		memory[address] = accumulator;
+		memory.write(address, accumulator);
 	}
 	
 	void stx(int address)
 	{
-		memory[address] = xindex;
+		memory.write(address, xindex);
 	}
 	
 	void sty(int address)
 	{
-		memory[address] = yindex;
+		memory.write(address, yindex);
 	}
 	
 	
@@ -354,28 +359,28 @@ public class Cpu
 	// (Logical Operations)
 	void and(int address)
 	{
-		accumulator &= memory[address];
+		accumulator &= memory.read(address);
 		adjustZeroFlag(accumulator);
 		adjustSignFlag(accumulator);
 	}
 	
 	void eor(int address)
 	{
-		accumulator ^= memory[address];
+		accumulator ^= memory.read(address);
 		adjustZeroFlag(accumulator);
 		adjustSignFlag(accumulator);
 	}
 	
 	void ora(int address)
 	{
-		accumulator |= memory[address];
+		accumulator |= memory.read(address);
 		adjustZeroFlag(accumulator);
 		adjustSignFlag(accumulator);
 	}
 	
 	void bit(int address)
 	{
-		int value = memory[address];
+		int value = memory.read(address);
 		adjustZeroFlag(accumulator & value);
 		adjustSignFlag(value);
 		overflowFlag = ((value & 0x20) == 0x20);
@@ -385,7 +390,7 @@ public class Cpu
 	
 	void adc(int address)
 	{
-		int value = memory[address];
+		int value = memory.read(address);
 		int result = accumulator + value + (carryFlag ? 1 : 0);
 		
 		carryFlag = result > 0xFF;
@@ -400,7 +405,7 @@ public class Cpu
 	
 	void sbc(int address)
 	{
-		int value = memory[address];
+		int value = memory.read(address);
 		int result = accumulator - value - (carryFlag ? 0 : 1);
 		
 		carryFlag = result < 0;
@@ -416,7 +421,7 @@ public class Cpu
 	
 	void cmp(int address)
 	{
-		int value = memory[address];
+		int value = memory.read(address);
 		carryFlag = accumulator >= value;
 		zeroFlag = accumulator == value;
 		adjustSignFlag(accumulator - value);
@@ -424,7 +429,7 @@ public class Cpu
 	
 	void cpx(int address)
 	{
-		int value = memory[address];
+		int value = memory.read(address);
 		carryFlag = xindex >= value;
 		zeroFlag = xindex == value;
 		adjustSignFlag(xindex - value);
@@ -432,7 +437,7 @@ public class Cpu
 	
 	void cpy(int address)
 	{
-		int value = memory[address];
+		int value = memory.read(address);
 		carryFlag = yindex >= value;
 		zeroFlag = yindex == value;
 		adjustSignFlag(yindex - value);
@@ -442,10 +447,10 @@ public class Cpu
 	
 	void inc(int address)
 	{
-		int result = (memory[address] + 1) & 0xFF;
+		int result = (memory.read(address) + 1) & 0xFF;
 		adjustZeroFlag(result);
 		adjustSignFlag(result);
-		memory[address] = result;
+		memory.write(address, result);
 	}
 	
 	void inx()
@@ -464,10 +469,10 @@ public class Cpu
 	
 	void dec(int address)
 	{
-		int result = (memory[address] - 1) & 0xFF;
+		int result = (memory.read(address) - 1) & 0xFF;
 		adjustZeroFlag(result);
 		adjustSignFlag(result);
-		memory[address] = result;
+		memory.write(address, result);
 	}
 	
 	void dex()
@@ -487,14 +492,14 @@ public class Cpu
 	// (Shift Operations)
 	void asl(int address)
 	{
-		int val = memory[address];
+		int val = memory.read(address);
 		
 		carryFlag = (val & 0x80) == 0x80;
 		val <<= 1;
 		adjustZeroFlag(val);
 		adjustSignFlag(val);
 		
-		memory[address] = val;
+		memory.write(address, val);
 	}
 	
 	void asl_accumulator()
@@ -507,14 +512,14 @@ public class Cpu
 	
 	void lsr(int address)
 	{
-		int val = memory[address];
+		int val = memory.read(address);
 		
 		carryFlag = (val & 0x01) == 0x01;
 		val >>= 1;
 		adjustZeroFlag(val);
 		adjustSignFlag(val);
 		
-		memory[address] = val;
+		memory.write(address, val);
 	}
 	
 	void lsr_accumulator()
@@ -527,7 +532,7 @@ public class Cpu
 	
 	void rol(int address)
 	{
-		int val = memory[address];
+		int val = memory.read(address);
 		
 		carryFlag = (val & 0x80) == 0x80;
 		val <<= 1;
@@ -536,7 +541,7 @@ public class Cpu
 		adjustZeroFlag(val);
 		adjustSignFlag(val);
 		
-		memory[address] = val;
+		memory.write(address, val);
 	}
 	
 	void rol_accumulator()
@@ -552,7 +557,7 @@ public class Cpu
 	
 	void ror(int address)
 	{
-		int val = memory[address];
+		int val = memory.read(address);
 		
 		carryFlag = (val & 0x01) == 0x01;
 		val >>= 1;
@@ -561,7 +566,7 @@ public class Cpu
 		adjustZeroFlag(val);
 		adjustSignFlag(val);
 		
-		memory[address] = val;
+		memory.write(address, val);
 	}
 	
 	void ror_accumulator()
@@ -727,17 +732,17 @@ public class Cpu
 	
 	private int zeropage()
 	{
-		return memory[pc++];
+		return memory.read(pc++);
 	}
 	
 	private int zeropageX()
 	{
-		return memory[ addBytes(pc++, xindex) ];
+		return memory.read( addBytes(pc++, xindex) );
 	}
 	
 	private int zeropageY()
 	{
-		return memory[ addBytes(pc++, yindex) ];
+		return memory.read( addBytes(pc++, yindex) );
 	}
 	
 	private int absolute()
@@ -766,32 +771,32 @@ public class Cpu
 	
 	private int indirectX()
 	{
-		int index = memory[addBytes(nextByte(),xindex)];
+		int index = memory.read( addBytes(nextByte(),xindex) );
 		return get2Bytes(index);
 	}
 	
 	private int indirectY()
 	{
-		int base = get2Bytes( memory[nextByte()] );
+		int base = get2Bytes( memory.read(nextByte()) );
 		pageCrossed = ((base & 0xFF) + yindex) > 0xFF;
 		return base+yindex;
 	}
 	
 	private int next2Bytes()
 	{
-		int b1 = memory[pc++];
-		int b2 = memory[pc++];
+		int b1 = memory.read(pc++);
+		int b2 = memory.read(pc++);
 		return b1 | (b2<<8);
 	}
 	
 	private int get2Bytes(int address)
 	{
-		return memory[address] | (memory[address+1]<<8);
+		return memory.read(address) | (memory.read(address+1)<<8);
 	}
 	
 	private int nextByte()
 	{
-		return memory[pc++];
+		return memory.read(pc++);
 	}
 	
 	private int statusFlag()
@@ -852,7 +857,7 @@ public class Cpu
 	// Stack Helper Functions
 	void push(int val)
 	{
-		memory[stackPointer] = val;
+		memory.write(stackPointer, val);
 		
 		stackPointer--;
 		stackPointer = 0x0100 | (stackPointer&0xFF);
@@ -863,7 +868,7 @@ public class Cpu
 		stackPointer++;
 		stackPointer = 0x0100 | (stackPointer&0xFF);
 		
-		return memory[stackPointer];
+		return memory.read(stackPointer);
 	}
 	
 	int irqVector()

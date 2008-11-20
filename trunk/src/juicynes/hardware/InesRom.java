@@ -1,14 +1,28 @@
 package juicynes.hardware;
 
-public class InesLoader
+import java.io.IOException;
+
+import juicynes.Util;
+
+public class InesRom extends Rom
 {
-	private int[][] prgRom;
-	private int[] chrRom;
-	private int prgRomCount;
-	private int chrRomCount;
+	protected int[][] prgRom;
+	protected int[] chrRom;
+	protected int prgRomCount;
+	protected int chrRomCount;
+	
+	final int PRG_ROM_BANK_SIZE = 16*1024;
+	
+	public InesRom(String filename) throws IOException
+	{
+		load(filename);
+	}
+	
+	@Override
+	public void load(String filename) throws IOException
+	{
+		int[] bytes = Util.bytesFromFile(filename);
 		
-	public void load(int[] bytes)
-	{	
 		prgRomCount = bytes[4];
 		chrRomCount = bytes[5];
 		boolean usesVertMirroring = (bytes[6] & 0x01) == 0x01;
@@ -19,13 +33,15 @@ public class InesLoader
 		int ramBanksCount = bytes[8];
 		if(ramBanksCount == 0) ramBanksCount = 1;
 		
-		int index = hasTrainer ? 10+512 : 10;
+		int index = hasTrainer ? 16+512 : 16;
+		
+		prgRom = new int[prgRomCount][];
 		
 		for(int i=0; i < prgRomCount; i++)
 		{
-			prgRom[i] = new int[16*1024];
+			prgRom[i] = new int[PRG_ROM_BANK_SIZE];
 			
-			for(int j = 0; i < prgRom.length; j++)
+			for(int j = 0; j < PRG_ROM_BANK_SIZE; j++)
 				prgRom[i][j] = bytes[index++];
 		}
 		
@@ -35,15 +51,15 @@ public class InesLoader
 			chrRom[i] = bytes[index++];
 	}
 	
-	
+	@Override
 	public int getPrgRomCount()
 	{
 		return prgRomCount;
 	}
 	
+	@Override
 	public int[] getPrgRom(int i)
 	{
 		return prgRom[i];
 	}
-	
 }

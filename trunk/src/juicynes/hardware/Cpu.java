@@ -1,23 +1,28 @@
 package juicynes.hardware;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+
 public class Cpu 
 {
 	// registers
-	int accumulator;
-	int xindex;
-	int yindex;
-	int pc;
-	int stackPointer;
+	int accumulator = 0;
+	int xindex = 0;
+	int yindex = 0;
+	int pc = 0xC000;
+	int stackPointer = 0xFD;
 	
 	// Status Register   7  6  5  4  3  2  1  0
 	//                   S  V     B  D  I  Z  C
-	boolean carryFlag;
-	boolean zeroFlag;
-	boolean interruptDisabledFlag;
-	boolean decimalModeFlag;
-	boolean breakFlag;
-	boolean overflowFlag;
-	boolean negativeFlag;
+	boolean carryFlag = false;
+	boolean zeroFlag = false;
+	boolean interruptDisabledFlag = true;
+	boolean decimalModeFlag = false;
+	boolean breakFlag = false;
+	//      empty = true;
+	boolean overflowFlag = false;
+	boolean negativeFlag = false;
 	
 	CpuMemoryMap memory;
 	
@@ -25,16 +30,38 @@ public class Cpu
 	int opcode;
 	boolean pageCrossed;
 	
-	
 	public Cpu(CpuMemoryMap memory)
 	{
 		this.memory = memory;
 	}
 	
-	public void run()
+	public void run() throws IOException
 	{
+		BufferedReader br = new BufferedReader(
+				new FileReader("test/nestest.log"));
+		
+		int i = 1;
 		while(true)
 		{
+			System.out.println("[" + (i++) + "]");
+			System.out.println(br.readLine());
+			
+			System.out.format("%1$-4s  %2$-2s %3$-2s %4$-2s",
+					Integer.toHexString(pc),
+					Integer.toHexString(memory.read(pc)),
+					Integer.toHexString(memory.read(pc+1)),
+					Integer.toHexString(memory.read(pc+2)));
+			
+			System.out.print("                                  ");
+			System.out.format("A:%1$-2s X:%2$-2s Y:%3$-2s P:%4$-2s SP:%5$-2s", 
+					Integer.toHexString(accumulator),
+					Integer.toHexString(xindex),
+					Integer.toHexString(yindex),
+					Integer.toHexString(statusFlag()),
+					Integer.toHexString(stackPointer));
+															 
+			System.out.println();
+			
 			opcode = memory.read(pc++);
 			switch (opcode)
 			{
@@ -235,6 +262,11 @@ public class Cpu
 				System.out.println("Illegal opcode: " + opcode);
 			break;
 			}
+			
+			if(memory.read(0x02) != 0)
+				System.out.println("0x02: 0x" + Integer.toHexString(memory.read(0x02)) );
+			if(memory.read(0x03) != 0)
+				System.out.println("0x03: 0x" + Integer.toHexString(memory.read(0x03)) );
 		}
 	}
 	
@@ -383,7 +415,7 @@ public class Cpu
 		int value = memory.read(address);
 		adjustZeroFlag(accumulator & value);
 		adjustSignFlag(value);
-		overflowFlag = ((value & 0x20) == 0x20);
+		overflowFlag = ((value & 0x40) == 0x40);
 	}
 	
 	// (Arithmetic Operations)
@@ -587,9 +619,10 @@ public class Cpu
 	
 	void jsr(int address)
 	{
+		pc--;
 		push((pc>>8) & 0xFF);
 		push(pc & 0xFF);
-		pc = address-1;
+		pc = address;
 	}
 	
 	void rts()
@@ -597,7 +630,7 @@ public class Cpu
 		pc = pull();
 		pc += (pull()<<8);
 		pc += 1;
-		//TODO: Might need to wrap pc.
+		pc &= 0xFFFF;
 	}
 	
 	// (Branch Operations)
@@ -812,6 +845,7 @@ public class Cpu
 			status |= 0x08;
 		if(breakFlag)
 			status |= 0x10;
+		status |= 0x20;
 		if(overflowFlag)
 			status |= 0x40;
 		if(negativeFlag)
@@ -857,18 +891,28 @@ public class Cpu
 	// Stack Helper Functions
 	void push(int val)
 	{
-		memory.write(stackPointer, val);
+		memory.write(stackPointer + 0x100, val);
 		
 		stackPointer--;
-		stackPointer = 0x0100 | (stackPointer&0xFF);
+		stackPointer = stackPointer&0xFF;
 	}
 	
 	int pull()
 	{
 		stackPointer++;
-		stackPointer = 0x0100 | (stackPointer&0xFF);
+		stackPointer = stackPointer&0xFF;
 		
-		return memory.read(stackPointer);
+		return memory.read(stackPointer + 0x100);
+	}
+	
+	int nmiVector()
+	{
+		return get2Bytes(0xFFFA);
+	}
+	
+	int resetVector()
+	{
+		return get2Bytes(0xFFFC);
 	}
 	
 	int irqVector()

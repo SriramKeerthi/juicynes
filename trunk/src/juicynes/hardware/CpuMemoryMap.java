@@ -23,11 +23,11 @@ public class CpuMemoryMap
 	final int BANK_NUM  = 16;
 	final int BANK_SIZE = 4096;
 	int[][] memory = new int[BANK_NUM][BANK_SIZE];
-	             
-	public CpuMemoryMap(InesLoader ines)
+	
+	public void loadRom(Rom rom)
 	{
 		// load lower prg-rom
-		int[] prgRom = ines.getPrgRom(0);
+		int[] prgRom = rom.getPrgRom(0);
 		
 		for(int i = 0; i < BANK_SIZE; i++)
 		{
@@ -38,8 +38,8 @@ public class CpuMemoryMap
 		}
 		
 		// load upper prg-rom
-		if(ines.getPrgRomCount() == 2)
-			prgRom = ines.getPrgRom(1);
+		if(rom.getPrgRomCount() == 2)
+			prgRom = rom.getPrgRom(1);
 		
 		for(int i = 0; i < BANK_SIZE; i++)
 		{
@@ -48,7 +48,6 @@ public class CpuMemoryMap
 			memory[14][i] = prgRom[i+2*BANK_SIZE];
 			memory[15][i] = prgRom[i+3*BANK_SIZE];
 		}
-		
 	}
 	
 	int read(int address)

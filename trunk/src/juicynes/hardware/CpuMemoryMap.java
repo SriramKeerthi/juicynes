@@ -62,6 +62,9 @@ public class CpuMemoryMap
 	
 	void write(int address, int value)
 	{
+		if(value > 0xFF)
+			throw new IllegalArgumentException("Value must be a byte (less than 0xFF)");
+			
 		if(address < 0x1FFF)
 			address &= 0x07FF;
 		else if(address >= 0x2000 && address <= 0x3FFF)

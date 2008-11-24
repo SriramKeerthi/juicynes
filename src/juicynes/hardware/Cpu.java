@@ -43,8 +43,9 @@ public class Cpu
 		int i = 1;
 		while(true)
 		{
+			String line = br.readLine();
 			System.out.println("[" + (i++) + "]");
-			System.out.println(br.readLine());
+			System.out.println(line);
 			
 			System.out.format("%1$-4s  %2$-2s %3$-2s %4$-2s",
 					Integer.toHexString(pc),
@@ -63,6 +64,21 @@ public class Cpu
 			System.out.println();
 			
 			opcode = memory.read(pc++);
+			
+			int expectedPc = Integer.decode("0x" + line.substring(0,4)).intValue();
+			int expectedOpcode = Integer.decode("0x" + line.substring(6,8)).intValue();
+			int expectedAccumulator = Integer.decode("0x" + line.substring(50,52)).intValue();
+			int expectedXindex = Integer.decode("0x" + line.substring(55,57)).intValue();
+			int expectedYindex = Integer.decode("0x" + line.substring(60,62)).intValue();
+			int expectedStatus = Integer.decode("0x" + line.substring(65,67)).intValue();
+			int expectedSp = Integer.decode("0x" + line.substring(71,73)).intValue();
+			
+			if( !(pc-1 == expectedPc && opcode == expectedOpcode && 
+				accumulator == expectedAccumulator && xindex == expectedXindex &&
+				yindex == expectedYindex && statusFlag() == expectedStatus &&
+				stackPointer == expectedSp) )
+				System.out.println("Error!");
+			
 			switch (opcode)
 			{
 			// (Load/Store Operations)
@@ -365,7 +381,9 @@ public class Cpu
 	
 	void php()
 	{
+		breakFlag = true;
 		push(statusFlag());
+		breakFlag = false;
 	}
 
 	void pla()
@@ -383,7 +401,7 @@ public class Cpu
 		zeroFlag = (value & 0x02) == 0x02;
 		interruptDisabledFlag = (value & 0x04) == 0x04;
 		decimalModeFlag = (value & 0x08) == 0x08;
-		breakFlag = (value & 0x10) == 0x10;
+		breakFlag = false;
 		overflowFlag = (value & 0x40) == 0x40;
 		negativeFlag = (value & 0x80) == 0x80;
 	}
@@ -440,7 +458,7 @@ public class Cpu
 		int value = memory.read(address);
 		int result = accumulator - value - (carryFlag ? 0 : 1);
 		
-		carryFlag = result < 0;
+		carryFlag = result >= 0;
 		overflowFlag = (((accumulator^result) & 0x80) != 0) && 
 		               (((accumulator^value) & 0x80) != 0);
 		
@@ -494,7 +512,7 @@ public class Cpu
 	
 	void iny()
 	{
-		xindex = (yindex + 1) & 0xFF;
+		yindex = (yindex + 1) & 0xFF;
 		adjustZeroFlag(yindex);
 		adjustSignFlag(yindex);
 	}
@@ -516,7 +534,7 @@ public class Cpu
 	
 	void dey()
 	{
-		xindex = (yindex - 1) & 0xFF;
+		yindex = (yindex - 1) & 0xFF;
 		adjustZeroFlag(yindex);
 		adjustSignFlag(yindex);
 	}
@@ -528,6 +546,7 @@ public class Cpu
 		
 		carryFlag = (val & 0x80) == 0x80;
 		val <<= 1;
+		val &= 0xFF;
 		adjustZeroFlag(val);
 		adjustSignFlag(val);
 		
@@ -538,6 +557,7 @@ public class Cpu
 	{
 		carryFlag = (accumulator & 0x80) == 0x80;
 		accumulator <<= 1;
+		accumulator &= 0xFF;
 		adjustZeroFlag(accumulator);
 		adjustSignFlag(accumulator);
 	}
@@ -566,10 +586,13 @@ public class Cpu
 	{
 		int val = memory.read(address);
 		
-		carryFlag = (val & 0x80) == 0x80;
+		boolean newCarryFlag = (val & 0x80) == 0x80;
 		val <<= 1;
+		val &= 0xFF;
 		if(carryFlag) 
-			val += 0x01;
+			val |= 0x01;
+		
+		carryFlag = newCarryFlag;
 		adjustZeroFlag(val);
 		adjustSignFlag(val);
 		
@@ -578,23 +601,27 @@ public class Cpu
 	
 	void rol_accumulator()
 	{
-		carryFlag = (accumulator & 0x80) == 0x80;
+		boolean newCarryFlag = (accumulator & 0x80) == 0x80;
 		accumulator <<= 1;
+		accumulator &= 0xFF;
 		if(carryFlag) 
-			accumulator += 0x01;
+			accumulator |= 0x01;
+		
+		carryFlag = newCarryFlag;
 		adjustZeroFlag(accumulator);
 		adjustSignFlag(accumulator);
-		
 	}
 	
 	void ror(int address)
 	{
 		int val = memory.read(address);
 		
-		carryFlag = (val & 0x01) == 0x01;
+		boolean newCarryFlag = (val & 0x01) == 0x01;
 		val >>= 1;
 		if(carryFlag) 
-			val += 0x80;
+			val |= 0x80;
+		
+		carryFlag = newCarryFlag;
 		adjustZeroFlag(val);
 		adjustSignFlag(val);
 		
@@ -603,10 +630,12 @@ public class Cpu
 	
 	void ror_accumulator()
 	{
-		carryFlag = (accumulator & 0x01) == 0x01;
+		boolean newCarryFlag = (accumulator & 0x01) == 0x01;
 		accumulator >>= 1;
 		if(carryFlag) 
-			accumulator += 0x80;
+			accumulator |= 0x80;
+		
+		carryFlag = newCarryFlag;
 		adjustZeroFlag(accumulator);
 		adjustSignFlag(accumulator);
 	}
@@ -743,7 +772,9 @@ public class Cpu
 	void rti()
 	{
 		int statusFlags = pull();
-		pc = pull();
+		int p1 = pull();
+		int p2 = pull();
+		pc = p1 | (p2<<8);
 		
 		carryFlag = (statusFlags & 0x01) == 0x01;
 		zeroFlag = (statusFlags & 0x02) == 0x02;
@@ -804,8 +835,7 @@ public class Cpu
 	
 	private int indirectX()
 	{
-		int index = memory.read( addBytes(nextByte(),xindex) );
-		return get2Bytes(index);
+		return get2Bytes(addBytes(nextByte(), xindex));
 	}
 	
 	private int indirectY()
@@ -856,7 +886,7 @@ public class Cpu
 	
 	private int addBytes(int byte1, int byte2)
 	{
-		return (byte1 + byte2) % 256;
+		return (byte1 + byte2) & 0xFF;
 	}
 	
 	private int signedByteValue(int byteval)
